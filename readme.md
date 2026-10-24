@@ -1,10 +1,10 @@
 ![Project Midas](port/include/presskit/PM%20thin%201%20-%20full.png)
 
-# Project Midas
+# Project Midas: Goldens Mod
 
-This is a video game about Jimothy's presumed-dead best friend Jarvis turns out to be alive, and in possession of a space laser he intends to point at a city - so Jimothy goes to the Cuban jungle and drops Jarvis off a satellite dish.
+This is a video game about Jimothy's presumed-dead best friend Jarvis turns out to be alive, but Jimothy has the sandbox powers to spawn whatever he wants.
 
-Project Midas is a work-in-progress PC port of GE, built from the N64 decompilation. It runs on Windows and Linux and reads its game data from your own copy of the US cart.
+Project Midas Golden's Mod is a work-in-progress PC port of GE, built from the N64 decompilation, and Project Midias, but includes a Garry's Mod style sandbox mode in it!. It runs on Windows and Linux and reads its game data from your own copy of the US cart.
 
 ## AI Disclaimer
 
