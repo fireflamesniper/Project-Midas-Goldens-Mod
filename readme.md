@@ -35,6 +35,30 @@ Files next to the executable:
 
 An older `ge.ini` is renamed to `midas.ini` automatically on first run.
 
+If no cart is found at launch, a file dialog asks for it, and the cart you pick is copied into `Data/`.
+
+## Sandbox mode
+
+**On the difficulty screen**, the SANDBOX column has three toggles for the mission you start:
+
+- **Empty**: no guards, pickups, cameras, autoguns, alarms or vehicles. Doors, keys, glass and furniture stay.
+- **Objectives**: OFF hides every objective. None can fail, and the mission counts as complete.
+- **Exits**: OFF stops scripted level endings (exit cutscenes, end triggers, scripted "killed in action").
+
+**In any solo mission**, press **B** (keyboard) or **RB** (controller) to open the spawn menu. While it is open the game ignores your other inputs. Anything you choose is placed where Bond is looking:
+
+| Category | What it places |
+| --- | --- |
+| Characters / Guards | Any of the 41 character bodies. You choose Enemy or Ally, then a weapon. Allies follow Bond and shoot the nearest enemy. |
+| Weapons | Weapon pickups, including the grenade launcher, rocket launcher and mines |
+| Ammo | Ammo boxes for every ammo type |
+| Body Armor | Full or half armor |
+| Glass Windows | Breakable panes of several sizes, plus lattice windows |
+| Objects | All 340 prop models in the game |
+| Tools | Undo the last spawn, remove everything you placed, toggle invincibility |
+
+Menu keys: Up/Down (or W/S, D-pad, left stick) to choose, Enter/E/Space (controller A) to select, Backspace/Esc (controller B) to go back, PgUp/PgDn (LT/RT) to page. In solo missions RB opens the menu, so next-weapon is not on RB there.
+
 ## Building
 
 The build runs in Docker, which has every tool and library both builds need. You also need the GE (USA) cart as `baserom.u.z64` in the repository root:

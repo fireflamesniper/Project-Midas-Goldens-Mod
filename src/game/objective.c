@@ -61,6 +61,18 @@ void setup_briefing_text_entry_parent(struct setup_objective_text *arg0)
 */
 void add_ptr_to_objective(struct objective_entry* objective)
 {
+#ifndef TARGET_N64
+    {
+        /* Sandbox "objectives off" (port/src/sandbox.c): never register
+         * them, so none show on the watch, none can fail, and the mission
+         * counts as complete */
+        extern s32 sandboxNoObjectivesActive(void);
+        if (sandboxNoObjectivesActive())
+        {
+            return;
+        }
+    }
+#endif
     objective_ptrs[objective->menu] = objective;
 
     if (objective_count < objective->menu)

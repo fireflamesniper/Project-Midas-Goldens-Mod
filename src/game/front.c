@@ -9146,6 +9146,17 @@ Gfx *constructor_menu07_missionsel(Gfx *DL)
 //********************************************************************************************************
 //DIFFICULTY SELECT
 //********************************************************************************************************
+#ifndef TARGET_N64
+/* Sandbox toggles on the difficulty screen (port/src/sandbox.c): a column to
+ * the right of the difficulties, one row per setting, on the same 30-unit
+ * pitch as the difficulty rows. */
+#include "sandbox.h"
+#define PORT_SANDBOX_COL_X   268
+#define PORT_SANDBOX_ROWS    3
+#define PORT_SANDBOX_ROW_Y(i) (0xB4 + (i) * 0x1E)
+static s32 g_portSandboxHighlight = -1;
+#endif
+
 void init_menu08_difficultyselect(void)
 {
     selected_difficulty = DIFFICULTY_MULTI;
@@ -9197,6 +9208,18 @@ void interface_menu08_difficulty(void)
         mission_difficulty_highlighted = DIFFICULTY_AGENT;
     }
 
+#ifndef TARGET_N64
+    /* Sandbox column (port/src/sandbox.c): the cursor over it highlights a
+     * toggle instead of a difficulty */
+    g_portSandboxHighlight = -1;
+    if (!tab_prev_highlight && cursor_h_pos >= PORT_SANDBOX_COL_X - 12.0f
+        && cursor_v_pos >= PORT_SANDBOX_ROW_Y(0) - 15.0f && cursor_v_pos < PORT_SANDBOX_ROW_Y(PORT_SANDBOX_ROWS) - 15.0f)
+    {
+        g_portSandboxHighlight = (s32) ((cursor_v_pos - (PORT_SANDBOX_ROW_Y(0) - 15.0f)) / 30.0f);
+        mission_difficulty_highlighted = DIFFICULTY_MULTI;
+    }
+#endif
+
     if (joyGetButtonsPressedThisFrame(PLAYER_1, START_BUTTON|Z_TRIG|A_BUTTON))
     {
         if (tab_prev_highlight)
@@ -9205,6 +9228,16 @@ void interface_menu08_difficulty(void)
 
             sndPlaySfx(g_musicSfxBufferPtr, DOOR_METAL_CLOSE2_SFX, NULL);
         }
+#ifndef TARGET_N64
+        else if (g_portSandboxHighlight >= 0)
+        {
+            s32 *opt = g_portSandboxHighlight == 0 ? &g_SandboxEmptyLevel
+                     : g_portSandboxHighlight == 1 ? &g_SandboxNoObjectives
+                     : &g_SandboxNoExits;
+            *opt = !*opt;
+            sndPlaySfx(g_musicSfxBufferPtr, PAPER_TURN_SFX, NULL);
+        }
+#endif
         else
         {
             if (mission_difficulty_highlighted >= DIFFICULTY_AGENT)
@@ -9226,6 +9259,9 @@ void interface_menu08_difficulty(void)
 
     if (tab_next_selected)
     {
+#ifndef TARGET_N64
+        sandboxArmForNextMission(); /* the sandbox toggles apply to this mission */
+#endif
         if (selected_difficulty == DIFFICULTY_007)
         {
             frontChangeMenu(MENU_007_OPTIONS, FALSE);
@@ -9441,6 +9477,33 @@ Gfx *constructor_menu08_difficulty(Gfx *DL)
         }
     }
 
+#ifndef TARGET_N64
+    { /* the sandbox column: header, highlight, three toggles */
+        static const char *const names[PORT_SANDBOX_ROWS] = { "Empty", "Objectives", "Exits" };
+        const s32 vals[PORT_SANDBOX_ROWS] = { g_SandboxEmptyLevel, !g_SandboxNoObjectives, !g_SandboxNoExits };
+        char line[48];
+
+        x = PORT_SANDBOX_COL_X;
+        y = 0x8F;
+        DL = frontPrintText(DL, &x, &y, "SANDBOX:\n", ptrFontZurichBoldChars, ptrFontZurichBold, 0xFF, viGetX(), viGetY(), 0, 0);
+
+        if (g_portSandboxHighlight >= 0)
+        {
+            DL = microcode_constructor_related_to_menus(DL, PORT_SANDBOX_COL_X - 6, PORT_SANDBOX_ROW_Y(g_portSandboxHighlight) - 2,
+                                                        PORT_SANDBOX_COL_X + 76, PORT_SANDBOX_ROW_Y(g_portSandboxHighlight) + 15, 0x32);
+        }
+        for (i = 0; i < PORT_SANDBOX_ROWS; i++)
+        {
+            /* Empty Level reads ON when set; the other two read ON when the
+             * vanilla behaviour is kept, OFF when the sandbox turns it off */
+            sprintf(line, "%s: %s\n", names[i], vals[i] ? "ON" : "OFF");
+            x = PORT_SANDBOX_COL_X;
+            y = PORT_SANDBOX_ROW_Y(i);
+            DL = frontPrintText(DL, &x, &y, line, ptrFontZurichBoldChars, ptrFontZurichBold, 0xFF, viGetX(), viGetY(), 0, 0);
+        }
+    }
+#endif
+
     DL = frontAddPreviousTabText(DL);
 
     /**
@@ -9453,7 +9516,11 @@ Gfx *constructor_menu08_difficulty(Gfx *DL)
         {
             image = &mainfolderimages[IMAGE_CHECK];
 
+#ifndef TARGET_N64
+            xypos[0] = 250.0f; /* PORT: left of the sandbox column (was 280) */
+#else
             xypos[0] = 280.0f;
+#endif
             xypos[1] = (f32) ((i * 0x1E) + 0xBA);
 
             halfedxy[0] = image->width * 0.5f;
@@ -18884,6 +18951,11 @@ static void portMenuHarnessTick(void)
         {
             if (e[0] == 'f') target = MENU_MODE_SELECT;
             else if (e[0] == 'i') target = MENU_MISSION_SELECT;   /* GE_MENU=imissions: the solo mission grid */
+            else if (e[0] == 'd')
+            {   /* GE_MENU=difficulty: Dam's difficulty + sandbox screen (entry 1 of the folder) */
+                briefingpage = 1;
+                target = MENU_DIFFICULTY;
+            }
             else if (e[0] == 's') target = MENU_FILE_SELECT;  /* GE_MENU=select: the Files screen */
             else if (e[0] == 'o') target = MENU_PORT_OPTIONS; /* GE_MENU=options: the OPTIONS page */
             else if (e[0] == 'x')

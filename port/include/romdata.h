@@ -26,7 +26,8 @@ enum romsource {
     ROMSRC_ENV,       /* GE_ROM=<path> */
     ROMSRC_INI,       /* midas.ini [data] rom= */
     ROMSRC_DATADIR,   /* first valid file in ./Data */
-    ROMSRC_LEGACY     /* repo-root baserom.u.z64 (dev convenience) */
+    ROMSRC_LEGACY,    /* repo-root baserom.u.z64 (dev convenience) */
+    ROMSRC_BROWSE     /* picked in the first-run file dialog, then copied into ./Data */
 };
 
 /* main(): find + load the ROM, parse its tables.

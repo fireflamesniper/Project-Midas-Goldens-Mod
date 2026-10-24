@@ -1374,8 +1374,9 @@ void osContGetReadData(OSContPad *data)
                 e = getenv("GE_DRIVE");
                 if ((e != NULL) && (e[0] != '0')) mpdrive = 1;
             }
-            if (portConIsOpen()) {
-                /* Console open: every pad reads neutral, not just the keyboard,
+            extern s32 portSandboxCapturing(void); /* sandbox.c: the spawn menu is open */
+            if (portConIsOpen() || portSandboxCapturing()) {
+                /* Console open (or the sandbox spawn menu): every pad reads neutral, not just the keyboard,
                  * because a controller reaches joy_port through
                  * portInputPadMerge and a held stick would steer Bond while
                  * typing. The commit below still runs with all-zero downs so

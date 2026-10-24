@@ -28,6 +28,15 @@ void alloc_init_GUARDdata_entries(s32 count)
     s32 i;
     
     g_NumChrSlots = count + 10; //special guards?
+#ifndef TARGET_N64
+    /* Sandbox spawn menu (port/src/sandbox.c): room for the characters a
+     * player places in a solo mission. chrSpawnAtCoord keeps 3 slots free. */
+    extern s32 getPlayerCount(void);
+    if (getPlayerCount() == 1)
+    {
+        g_NumChrSlots += 64;
+    }
+#endif
 
     g_ChrSlots = mempAllocBytesInBank(align_addr_zero(g_NumChrSlots * sizeof(ChrRecord)), MEMPOOL_STAGE);
     for(i = 0; g_NumChrSlots > i; i++)

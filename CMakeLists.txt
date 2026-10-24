@@ -429,6 +429,11 @@ target_include_directories(ge PRIVATE ${CMAKE_BINARY_DIR}/generated)
 # libm: sinf/cosf/sqrtf (math_sincos.s and gu asm on N64; libm on PC).
 target_link_libraries(ge m)
 
+# comdlg32: the first-run ROM file dialog (port/src/rom_browse.c)
+if(WIN32)
+    target_link_libraries(ge comdlg32 user32)
+endif()
+
 if(GE_VIDEO)
     if(WIN32)
         # the SDL2 MinGW development package: third_party/ by default, or

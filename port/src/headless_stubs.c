@@ -85,3 +85,10 @@ f32 portInputMouseAimScale(void)
 {
     return 1.0f;
 }
+
+/* sandbox.c's controller view, normally owned by input_pc.c (GE_VIDEO-only):
+ * no pads headless. */
+u32 portSandboxPadButtons(void)
+{
+    return 0;
+}

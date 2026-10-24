@@ -31,6 +31,7 @@
 
 #include <SDL.h>
 #include "port_console.h" /* the tilde console: fixed keys feed it below */
+#include "sandbox.h"      /* the sandbox spawn menu: B and the menu keys, RB on a pad */
 static const char *inputDevRecPath(const char *id);   /* per-device records, below */
 
 #define INPUT_MAX_PADS 4
@@ -1847,6 +1848,43 @@ static int inputFixedKeyDown(const SDL_KeyboardEvent *key)
         default: break;
         }
         return 1; /* console open: the keyboard is the prompt's, not the game's */
+    }
+
+    if (sc != SDL_SCANCODE_F1)
+    {   /* Sandbox spawn menu (sandbox.c): B opens it in a solo mission; while
+         * it is open the keyboard is the menu's (arrows/WASD, Enter, Backspace
+         * or Escape, Page Up/Down), as it is the prompt's above */
+        s32 sk = 0;
+
+        switch (sc)
+        {
+        case SDL_SCANCODE_B:         sk = repeat ? 0 : SANDBOX_KEY_TOGGLE; break;
+        case SDL_SCANCODE_UP:
+        case SDL_SCANCODE_W:         sk = SANDBOX_KEY_UP;                  break;
+        case SDL_SCANCODE_DOWN:
+        case SDL_SCANCODE_S:         sk = SANDBOX_KEY_DOWN;                break;
+        case SDL_SCANCODE_LEFT:
+        case SDL_SCANCODE_A:         sk = repeat ? 0 : SANDBOX_KEY_LEFT;   break;
+        case SDL_SCANCODE_RIGHT:
+        case SDL_SCANCODE_D:         sk = repeat ? 0 : SANDBOX_KEY_RIGHT;  break;
+        case SDL_SCANCODE_RETURN:
+        case SDL_SCANCODE_KP_ENTER:
+        case SDL_SCANCODE_SPACE:
+        case SDL_SCANCODE_E:         sk = repeat ? 0 : SANDBOX_KEY_ACCEPT; break;
+        case SDL_SCANCODE_BACKSPACE:
+        case SDL_SCANCODE_ESCAPE:    sk = repeat ? 0 : SANDBOX_KEY_BACK;   break;
+        case SDL_SCANCODE_PAGEUP:    sk = SANDBOX_KEY_PAGEUP;              break;
+        case SDL_SCANCODE_PAGEDOWN:  sk = SANDBOX_KEY_PAGEDOWN;            break;
+        default: break;
+        }
+        if (sk != 0 && sandboxKeyDown(sk))
+        {
+            return 1;
+        }
+        if (portSandboxCapturing())
+        {
+            return 1; /* menu open: every other key is swallowed too */
+        }
     }
 
     if (sc == SDL_SCANCODE_F1)
@@ -8728,7 +8766,7 @@ void portInputMouseLookDelta(f32 *dx, f32 *dy)
     /* p1_hybrid=0 with a pad owning player 1: a bumped mouse must not turn
      * Bond either - only the keys were muted. Gameplay is the only
      * reader of these deltas. */
-    if (s_OptMouse && s_MouseLocked && !portInputP1KbmMuted())
+    if (s_OptMouse && s_MouseLocked && !portInputP1KbmMuted() && !portSandboxCapturing())
     {
         mx = s_OptMouseSensX * ((f32)s_MouseDX / 3.5f) * 0.022f;
         my = s_OptMouseSensY * ((f32)s_MouseDY / 3.5f) * 0.022f;
@@ -8751,7 +8789,7 @@ void portInputMouseLookDeltaDeg(f32 *dxdeg, f32 *dydeg)
 {
     f32 mx = 0.0f, my = 0.0f;
 
-    if (s_OptMouse && s_MouseLocked && !portInputP1KbmMuted())
+    if (s_OptMouse && s_MouseLocked && !portInputP1KbmMuted() && !portSandboxCapturing())
     {
         /* /2.5 normalises midas.ini's existing default (mouse_sens_x = 2.5,
          * tuned for the old rate path) onto the injector's own default of
@@ -8953,4 +8991,44 @@ void portInputRumble(s32 channel, s32 on)
         SDL_JoystickRumble(s_Joys[channel], on ? 0xC000 : 0, on ? 0xC000 : 0, on ? 500 : 0);
     }
 #endif
+}
+
+
+/**
+ * The sandbox spawn menu's view of the controllers (sandbox.h SBPAD_*): every
+ * open pad ORed together - d-pad or left stick, A, B, RB, and the triggers -
+ * read straight from SDL, because the game's pads read neutral while the menu
+ * is open (osContGetReadData).
+ */
+u32 portSandboxPadButtons(void)
+{
+    u32 b = 0;
+    int i;
+
+    for (i = 0; i < INPUT_MAX_PADS; i++)
+    {
+        SDL_GameController *c = s_Pads[i];
+        Sint16 lx, ly;
+
+        if (c == NULL || !SDL_GameControllerGetAttached(c))
+        {
+            continue;
+        }
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_UP))       b |= SBPAD_UP;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_DOWN))     b |= SBPAD_DOWN;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_LEFT))     b |= SBPAD_LEFT;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))    b |= SBPAD_RIGHT;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_A))             b |= SBPAD_A;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_B))             b |= SBPAD_B;
+        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) b |= SBPAD_RB;
+        if (SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16384)  b |= SBPAD_LT;
+        if (SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16384) b |= SBPAD_RT;
+        lx = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTX);
+        ly = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTY);
+        if (ly < -20000) b |= SBPAD_UP;
+        if (ly > 20000)  b |= SBPAD_DOWN;
+        if (lx < -20000) b |= SBPAD_LEFT;
+        if (lx > 20000)  b |= SBPAD_RIGHT;
+    }
+    return b;
 }

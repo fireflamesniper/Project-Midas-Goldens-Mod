@@ -738,6 +738,10 @@ void lvlStageLoad(s32 stage)
 
 #ifndef TARGET_N64
     g_PortCheatCountdown = 60; /* apply GE_CHEATS ~1s into the mission */
+    {
+        extern void sandboxStageLoad(s32 stage);
+        sandboxStageLoad(stage); /* latch this mission's sandbox settings before setup loads */
+    }
     g_PortSpawnWepCountdown = 120; /* GE_SPAWNWEAPON drops ~2s in */
     portDebugPosApply();
     portCheatApplyLoadTimeSafe(); /* GE_CHEATS=rockets must be live before
@@ -1304,6 +1308,10 @@ Gfx* lvlRender(Gfx* DL)
             portSpawnWeaponTick(); /* GE_SPAWNWEAPON pickup drops */
             portSpawnWepTrace();
             portGotoTick();  /* GE_GOTO test-man steering */
+            {
+                extern void sandboxTick(void);
+                sandboxTick(); /* sandbox spawn menu + allies (port/src/sandbox.c) */
+            }
 #endif
 
             if (

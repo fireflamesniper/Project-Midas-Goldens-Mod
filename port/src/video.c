@@ -1867,6 +1867,7 @@ extern s32 portJoyPortOptionGet(const char *key, s32 *out);
 extern s32 portJoyPortAlwaysWalk(void);
 extern void portJoyPortPoll(const u8 *down);
 extern s32 portConIsOpen(void); /* port_console.c - the tilde console */
+extern s32 portSandboxCapturing(void); /* sandbox.c - the spawn menu is open */
 extern s32 portInputP1KbmMuted(void); /* input_pc.c - p1_hybrid off, a pad owns player 1 */
 
 /* the keyboard's Look keys, as a stick in N64 units. Zero unless the player
@@ -4275,7 +4276,9 @@ void videoGetPad(OSContPad *pad)
         }
         kbmOnly = !portConIsOpen() && !s_BindCapArmed && !portBindCooldownActive()
                   && portInputP1KbmMuted() && portStageRunning() && portP1ControlsLive();
-        if (portConIsOpen() || (portInputP1KbmMuted() && portStageRunning() && portP1ControlsLive())
+        /* the sandbox spawn menu (sandbox.c) owns the keyboard and mouse like the console */
+        if (portConIsOpen() || portSandboxCapturing()
+            || (portInputP1KbmMuted() && portStageRunning() && portP1ControlsLive())
             || s_BindCapArmed || portBindCooldownActive())
         {
             /* Armed, or just finished: the keyboard belongs to the capture.
@@ -4369,7 +4372,8 @@ void videoGetPad(OSContPad *pad)
         }
 
         videoWheelDrain(); /* one EDGE per notch (helper above) */
-        if (portConIsOpen() || (portInputP1KbmMuted() && portStageRunning() && portP1ControlsLive()))
+        if (portConIsOpen() || portSandboxCapturing()
+            || (portInputP1KbmMuted() && portStageRunning() && portP1ControlsLive()))
         {
             /* the notch is drained (never banked) but nothing sees it: the
              * wheel levels are what videoCodeDown reads for the WHEEL bind

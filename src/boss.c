@@ -794,6 +794,8 @@ void bossMainloop(void)
                                * last so it covers every screen, and a no-op
                                * until opened or while fonts are unloaded. */
                                 extern Gfx *portConRender(Gfx *gdl);
+                                extern Gfx *sandboxRender(Gfx *gdl);
+                                gdl = sandboxRender(gdl); /* sandbox spawn menu (port/src/sandbox.c), under the console */
                                 gdl = portConRender(gdl);
                             }
 #endif

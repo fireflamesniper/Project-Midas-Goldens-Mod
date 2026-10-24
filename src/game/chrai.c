@@ -926,6 +926,47 @@ void                   ai(PropDefHeaderRecord *Entityp, PROP_TYPE EntityType)
         // loop forever (or until broken)
         for (;;)
         {
+#ifndef TARGET_N64
+            /* Sandbox "level exits off" (port/src/sandbox.c): a list about to
+             * start an exit sequence - lock Bond's controls for the exit
+             * cinema, end the level, exit on a button press, or kill Bond in
+             * action - is parked on the dead AI list instead, and the screen
+             * and controls are handed back in case it had faded them. */
+            {
+                extern s32 sandboxBlockLevelExit(void);
+                const u8 cmd = (AiListp + Offset)->cmd;
+
+                if ((cmd == AI_BondDisableControl || cmd == AI_EndLevel
+                     || cmd == AI_TriggerFadeAndExitLevelOnButtonPress || cmd == AI_BondKilledInAction)
+                    && sandboxBlockLevelExit())
+                {
+                    AIRecord *dead = ailistFindById(GAILIST_DEAD_AI);
+
+                    currentPlayerSetFadeColour(0, 0, 0, 1);
+                    currentPlayerSetFadeFrac(CHRAI_TICKRATE_F, 0);
+                    gunSetSightVisible(GUNSIGHTREASON_NOCONTROL, TRUE);
+                    gunSetGunAmmoVisible(GUNAMMOREASON_NOCONTROL, TRUE);
+                    hudmsgsSetOn(PLAYERFLAG_NOCONTROL);
+                    bondviewClearUpperTextDisplayFlag(2);
+                    if (ChrEntityp)
+                    {
+                        ChrEntityp->ailist   = dead;
+                        ChrEntityp->aioffset = 0;
+                    }
+                    else if (VehichleEntityp)
+                    {
+                        VehichleEntityp->ailist   = dead;
+                        VehichleEntityp->aioffset = 0;
+                    }
+                    else if (AircraftEntityp)
+                    {
+                        AircraftEntityp->ailist   = dead;
+                        AircraftEntityp->aioffset = 0;
+                    }
+                    return;
+                }
+            }
+#endif
             /*
              * GE uses long Switch/case while PD uses Bool functions and tests
              * for TRUE/FALSE if(funcpointer[ai]) break;

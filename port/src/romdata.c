@@ -145,6 +145,7 @@ static const char *romdataSourceName(enum romsource s)
     case ROMSRC_INI:     return "midas.ini [data] rom=";
     case ROMSRC_DATADIR: return "./" ROMDATA_DATA_DIR " scan";
     case ROMSRC_LEGACY:  return "legacy repo baserom (dev)";
+    case ROMSRC_BROWSE:  return "file dialog";
     default:             return "none";
     }
 }
@@ -1228,6 +1229,72 @@ static void romdataNoteRefusal(const char *path)
     }
 }
 
+/* Copy the cart picked in the file dialog into ./Data (unless it is already
+ * there) so the Data scan finds it next launch. Best effort: a failed copy
+ * only means the dialog comes back next time. */
+static void romdataInstallCopy(const char *src)
+{
+    const char *base = src;
+    const char *p;
+    char dst[1500];
+    char datadir[1200];
+    FILE *in, *out;
+    static u8 buf[1 << 16];
+    size_t n;
+    int ok = 1;
+
+    for (p = src; *p != '\0'; p++)
+    {
+        if (*p == '/' || *p == '\\')
+        {
+            base = p + 1;
+        }
+    }
+    snprintf(datadir, sizeof(datadir), "%s", portRootPath(ROMDATA_DATA_DIR));
+    if (strncmp(src, datadir, strlen(datadir)) == 0)
+    {
+        return; /* already inside Data */
+    }
+    snprintf(dst, sizeof(dst), "%s" PATHSEP "%s", datadir, base[0] != '\0' ? base : "baserom.u.z64");
+    if (romdataIsFile(dst))
+    {
+        portConLogf("ge: romdata: %s already exists - not overwritten\n", dst);
+        return;
+    }
+    in = fopen(src, "rb");
+    if (in == NULL)
+    {
+        return;
+    }
+    out = fopen(dst, "wb");
+    if (out == NULL)
+    {
+        portConLogf("ge: romdata: could not write %s (read-only install dir?)\n", dst);
+        fclose(in);
+        return;
+    }
+    while ((n = fread(buf, 1, sizeof(buf), in)) > 0)
+    {
+        if (fwrite(buf, 1, n, out) != n)
+        {
+            ok = 0;
+            break;
+        }
+    }
+    fclose(in);
+    if (fclose(out) != 0)
+    {
+        ok = 0;
+    }
+    if (!ok)
+    {
+        remove(dst);
+        portConLogf("ge: romdata: copying the cart to %s failed - it will be asked for again next launch\n", dst);
+        return;
+    }
+    portConLogf("ge: romdata: copied the cart into %s (assets are read from it from now on)\n", dst);
+}
+
 s32 romdataInit(int argc, char **argv)
 {
     extern void portShowErrorBox(const char *title, const char *text); /* video.c; weak no-op headless */
@@ -1314,6 +1381,29 @@ s32 romdataInit(int argc, char **argv)
 
     portConLogf("ge: romdata: NO ROM - tried argv[1], --rom-file, GE_ROM, midas.ini [data] rom=, %s, baserom.u.z64\n",
             portRootPath(ROMDATA_DATA_DIR));
+
+    /* First run (or the cart was moved): ask for it. The picked file is
+     * validated like any other and, once it loads, copied into ./Data so
+     * every later launch finds it by itself. Cancel falls through to the
+     * message below. */
+    {
+        extern int portRomBrowse(char *out, int n); /* rom_browse.c */
+        char picked[1200];
+
+        while (portRomBrowse(picked, (int) sizeof(picked)))
+        {
+            if (romdataTryLoad(picked, ROMSRC_BROWSE, 0))
+            {
+                romdataInstallCopy(picked);
+                goto done;
+            }
+            romdataNoteRefusal(picked);
+            portShowErrorBox("GoldenEye 007",
+                             "That file is not a stock GoldenEye 007 (USA) cart image.\n\n"
+                             "Pick your GoldenEye 007 (U) .z64, .v64 or .n64 ROM - not a .zip, "
+                             "another region, or a modded ROM.");
+        }
+    }
 #ifdef GE_ROMDATA_FALLBACK
     portConLogf("ge: romdata: put your GoldenEye 007 (U) cart image (.z64/.v64/.n64) in %s or drop it onto the exe; running on the compiled-in assets\n",
             portRootPath(ROMDATA_DATA_DIR));

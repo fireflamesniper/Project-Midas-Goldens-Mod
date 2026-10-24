@@ -90,6 +90,22 @@ Model *modelmgrInstantiateModel(ModelFileHeader *header)
                 break;
             }
         }
+#ifndef TARGET_N64
+        /* PORT: every slot sized at stage load is taken (or too small for
+         * this model's rwdata) - the sandbox spawn menu places models the
+         * setup never counted. Allocate one from the stage pool the way the
+         * lvreset branch above does; the 64 MB host arena has the room, and
+         * the stage reset reclaims it. */
+        if (model == NULL)
+        {
+            model = mempAllocBytesInBank(sizeof(struct ModelSlot) > 0x20 ? sizeof(struct ModelSlot) : 0x20, MEMPOOL_STAGE);
+            if (header->numRecords > 0)
+            {
+                rwdata = mempAllocBytesInBank((((header->numRecords * 4) + 0xf) | 0xf) ^ 0xf, MEMPOOL_STAGE);
+                rwdatalen = header->numRecords;
+            }
+        }
+#endif
     }
 
     if (model != NULL)
@@ -167,6 +183,19 @@ Model *modelmgrInstantiateModelWithAnim(ModelFileHeader *modelFileHeader)
                 break;
             }
         }
+#ifndef TARGET_N64
+        /* PORT: no free animated slot (sandbox-spawned characters) - take
+         * one from the stage pool, as the lvreset branch above does */
+        if (newModel == NULL)
+        {
+            newModel = mempAllocBytesInBank(0xc0, MEMPOOL_STAGE);
+            if (requiredRwdatalen > 0)
+            {
+                rwdatas = mempAllocBytesInBank((((requiredRwdatalen * 4) + 0xf) | 0xf) ^ 0xf, MEMPOOL_STAGE);
+                rwdatalen = requiredRwdatalen;
+            }
+        }
+#endif
     }
 
     if (newModel != NULL)

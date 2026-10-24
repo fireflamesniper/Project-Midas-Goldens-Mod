@@ -2295,6 +2295,17 @@ void proplvreset2(enum LEVELID stageId)
                     extern void portHwNotePropdef(s32 type);
                     portHwNotePropdef(phead->type); /* tickhz=hw stage-load setup work (frametiming.c) */
                 }
+                {
+                    /* Sandbox "empty level" (port/src/sandbox.c): leave this
+                     * guard or object out, as a difficulty-excluded one is */
+                    extern s32 sandboxSkipPropdef(s32 type);
+                    if (sandboxSkipPropdef(phead->type))
+                    {
+                        phead = (PropDefHeaderRecord *) (((u32 *) phead) + sizepropdef(phead));
+                        pdefIndex++;
+                        continue;
+                    }
+                }
 #endif
                 switch (phead->type)
                 {
